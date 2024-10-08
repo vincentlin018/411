@@ -1,0 +1,19 @@
+Formal Requirements
+
+Goal and Non-Goal
+
+Goal: Enhance the merge experience by incorporating humor through memes and jokes.
+Non-Goal: Replace traditional diff visualization entirely with meme-based representations.
+
+Non-Functional Requirements
+
+Access Control: The system must enforce role-based access control to maintain the integrity of snickering concepts and user study data.
+Randomization: The user study module must provide unbiased random assignment of participants to control and variant groups.
+
+Functional Requirements
+For Access Control:
+    The system shall allow PMs to create, edit, and delete snickering concepts through a dedicated interface1.
+    The system shall restrict access to user study data to authorized researchers and administrators only1.
+For Randomization:
+    The system shall automatically assign users to either control or variant groups upon joining a user study.
+    The system shall maintain a balanced distribution of participants between control and variant groups, with a maximum imbalance of 5%.

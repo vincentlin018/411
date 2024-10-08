@@ -1,0 +1,30 @@
+Agile Requirements For for GiggleGit
+
+Theme: Get GiggleGit demo into a stable enough alpha to start onboarding some adventurous clients.
+
+Epic: Onboarding experience
+
+User Story 1:  As a vanilla git power-user that has never seen GiggleGit before I want to easily understand and navigate GiggleGit’s unique features so that I can quickly leverage my existing git knowledge while adapting to GiggleGit’s meme-based merge management.
+
+User Story 2: As a team lead onboarding an experienced GiggleGit user, I want to seamlessly integrate them into our existing workflow and help them share their GiggleGit expertise with the teams so that we can maximize the benefits of using GiggleGit across our projects.
+
+User Story 3: As a new GiggleGit user, I want to have access to interactive tutorials and documentation so that I can learn the system at my own pace and refer back to resources when needed.
+
+Task:
+Create interactive GiggleGit tutorials
+Ticket 1:
+
+Title: Design tutorial framework
+
+Details: Create a modular framework for interactive tutorials that can guide users through GiggleGit's core features. The framework should support step-by-step instructions, interactive elements, and progress tracking. Consider using a gamification approach to make the learning process engaging and memorable.
+Ticket 2:
+Title: Develop "Meme Merge Basics" tutorial
+
+Details: Create the first interactive tutorial focusing on GiggleGit's unique meme-based merge management. The tutorial should cover:
+Introduction to meme-based merging concept
+Selecting appropriate memes for different merge scenarios
+Resolving conflicts using memes
+Best practices for effective meme-based merging
+Ensure the tutorial is engaging, informative, and includes practical exercises for users to apply their learning.
+
+3. This is not a user story but rather more of a feature request or requirement statement. It lacks context, it is too technical, and it does not clearly state the benefits.
