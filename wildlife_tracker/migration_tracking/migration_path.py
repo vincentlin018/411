@@ -17,8 +17,5 @@ class MigrationPath:
     def get_migration_path_details(self) -> dict[str, Any]:
         pass
 
-    def update_migration_path_details(self, **kwargs: dict[str, Any]) -> None:
-        pass
-
     def get_path_id(self) -> int:
         pass
