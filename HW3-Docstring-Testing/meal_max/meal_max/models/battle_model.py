@@ -11,11 +11,30 @@ configure_logger(logger)
 
 
 class BattleModel:
+    """
+    A class to manage a battle of meals.
+
+    Attributes:
+        combatants (List[Meal]): The list of meals in the battle
+
+    """
 
     def __init__(self):
+        """
+        Initializes the BattleModel with an empty list.
+        """
         self.combatants: List[Meal] = []
 
     def battle(self) -> str:
+        """
+        Simulates the battle between meals.
+
+        Args:
+            none
+
+        Raises:
+            ValueError: If there aren't two combatants.
+        """
         logger.info("Two meals enter, one meal leaves!")
 
         if len(self.combatants) < 2:
@@ -69,10 +88,19 @@ class BattleModel:
         return winner.meal
 
     def clear_combatants(self):
+        """
+        Clears all combatants from the battle. 
+        """
         logger.info("Clearing the combatants list.")
         self.combatants.clear()
 
     def get_battle_score(self, combatant: Meal) -> float:
+        """
+        Gets the score for a combatant
+
+        Args:
+            combatant (Meal): The ID of the meal for which the score is to be calculated.
+        """
         difficulty_modifier = {"HIGH": 1, "MED": 2, "LOW": 3}
 
         # Log the calculation process
@@ -88,10 +116,22 @@ class BattleModel:
         return score
 
     def get_combatants(self) -> List[Meal]:
+        """
+        Returns the list of combatants for the battle. 
+        """
         logger.info("Retrieving current list of combatants.")
         return self.combatants
 
     def prep_combatant(self, combatant_data: Meal):
+        """
+        Adds a combatant to the battle.
+
+        Args:
+            combatant_data (Meal): The meal to be added to the list.
+
+        Raises:
+            ValueError: If there are already two combatants.
+        """
         if len(self.combatants) >= 2:
             logger.error("Attempted to add combatant '%s' but combatants list is full", combatant_data.meal)
             raise ValueError("Combatant list is full, cannot add more combatants.")
