@@ -14,7 +14,11 @@ from meal_max.models.kitchen_model import (
     update_meal_stats
 )
 
-## FIXTURES ##
+######################################################
+#
+#    Fixtures
+#
+######################################################
 
 def normalize_whitespace(sql_query: str) -> str:
     return re.sub(r'\s+', ' ', sql_query).strip()
@@ -40,7 +44,11 @@ def mock_cursor(mocker):
 
     return mock_cursor  # Return the mock cursor so we can set expectations per test
 
-## ADD and DELETE ##
+######################################################
+#
+#    Add and Delete
+#
+######################################################
 
 def test_create_meal(mock_cursor):
     """Test creating a new meal in the table."""
@@ -101,6 +109,52 @@ def test_create_meal_invalid_difficulty():
     with pytest.raises(ValueError, match="Invalid difficulty provided: invalid \(must be an integer greater than or equal to 1900\)."):
         create_meal(meal="Meal Name", cuisine="Meal Cuisine", price="invalid", difficulty="invalid")
 
+def test_clear_meals(mock_cursor, mocker):
+    """Test clearing all meals from the table."""
+    # Mock the open function to return a file-like object with the SQL script
+    mock_open = mocker.mock_open(read_data="CREATE TABLE meals (...);")
+    mocker.patch("builtins.open", mock_open)
+
+    # Mock os.getenv to return a default path
+    mocker.patch("os.getenv", return_value="/app/sql/create_meal_table.sql")
+
+    # Call the clear_meals function
+    clear_meals()
+
+    # Assert that open was called with the correct file path
+    mock_open.assert_called_once_with("/app/sql/create_meal_table.sql", "r")
+
+    # Assert that executescript was called with the correct SQL script
+    mock_cursor.executescript.assert_called_once_with("CREATE TABLE meals (...);")
+
+    # Assert that commit was called
+    mock_cursor.connection.commit.assert_called_once()
+
+def test_clear_meals_database_error(mock_cursor, mocker):
+    """Test error handling when a database error occurs during clearing meals."""
+    # Mock the open function to return a file-like object with the SQL script
+    mock_open = mocker.mock_open(read_data="CREATE TABLE meals (...);")
+    mocker.patch("builtins.open", mock_open)
+
+    # Mock os.getenv to return a default path
+    mocker.patch("os.getenv", return_value="/app/sql/create_meal_table.sql")
+
+    # Simulate a database error
+    mock_cursor.executescript.side_effect = sqlite3.Error("Database error")
+
+    # Expect a sqlite3.Error to be raised when clearing meals fails
+    with pytest.raises(sqlite3.Error, match="Database error"):
+        clear_meals()
+
+    # Assert that open was called with the correct file path
+    mock_open.assert_called_once_with("/app/sql/create_meal_table.sql", "r")
+
+    # Assert that executescript was called with the correct SQL script
+    mock_cursor.executescript.assert_called_once_with("CREATE TABLE meals (...);")
+
+    # Assert that commit was not called due to the error
+    mock_cursor.connection.commit.assert_not_called()
+
 def test_delete_meal(mock_cursor):
     """Test soft deleting a meal from the table by meal ID."""
 
@@ -152,7 +206,11 @@ def test_delete_meal_already_deleted(mock_cursor):
     with pytest.raises(ValueError, match="Meal with ID 999 has already been deleted"):
         delete_meal(999)
 
-## GET LEADERBOARD ##
+######################################################
+#
+#    Get Meal
+#
+######################################################
 
 def test_leaderboard_sorted_by_wins(mock_cursor):
     """Test that meals are sorted by wins."""
