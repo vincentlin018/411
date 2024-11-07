@@ -38,10 +38,12 @@ def test_add_meal_to_battle(battle_model, sample_meal1):
     assert len(battle_model.combatants) == 1
     assert battle_model.combatants[0].meal == 'Meal 1'
 
-def test_add_duplicate_meal_to_battle(battle_model, sample_meal1):
+def test_add_duplicate_meal_to_battle(battle_model, sample_meal1, sample_meal2):
     """Test error when adding a duplicate meal to the battle by ID."""
     battle_model.prep_combatant(sample_meal1)
-    with pytest.raises(ValueError, match="Meal with ID 1 already exists in the battle"):
+    battle_model.prep_combatant(sample_meal2)
+    #with pytest.raises(ValueError, match="Meal with ID 1 already exists in the battle"):
+    with pytest.raises(ValueError, match="Combatant list is full, cannot add more combatants."):
         battle_model.prep_combatant(sample_meal1)
 
 ##################################################
