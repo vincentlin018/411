@@ -197,7 +197,7 @@ def get_meal_by_id(meal_id: int) -> Meal:
         Meal: The meal object corresponding to the meal_id.
 
     Raises:
-        ValueError: If the song ID is not found or is marked as deleted.
+        ValueError: If the meal ID is not found or is marked as deleted.
         sqlite3.Error: if any database error occurs.
     """
     try:
