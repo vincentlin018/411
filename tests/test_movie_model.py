@@ -1,4 +1,5 @@
 import pytest
+import sqlite3
 from unittest.mock import patch, MagicMock
 from movie_model import (
     Movie,
