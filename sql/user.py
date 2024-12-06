@@ -28,3 +28,9 @@ def add_user(username, password):
 
     session.add(new_user)
     session.commit()
+
+def check_password(username, password):
+    user = session.query(User).filter_by(username = username).first()
+    if user and bcrypt.checkpw(password.encode(), bytes.fromhex(user.hashed_password)):
+        return True
+    return False
