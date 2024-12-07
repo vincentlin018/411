@@ -1,10 +1,15 @@
 from dotenv import load_dotenv
 from flask import Flask, jsonify, make_response, Response, request
-# from flask_cors import CORS
-
-from movie_app.models import add_favorite_movie, get_favorite_movies, delete_favorite_movie, get_movie_by_id, rate_movie, get_top_movies, add_to_watchlist
+import os
+import requests
+from movie_app.models.movie_model import (
+    search_movies,
+    get_movie_details,
+    search_by_year,
+    get_movie_by_title,
+    search_by_type
+)
 import logging
-
 app = Flask(__name__)
 
 # Configure logging
@@ -45,10 +50,10 @@ def get_movie_details(movie_id: str):
 @app.route('/api/health', methods=['GET'])
 def healthcheck() -> Response:
     """
-    Health check route to verify the service is running.
+    Health check endpoint to verify the service is running.
 
     Returns:
-        JSON response indicating the health status of the service.
+        Response: JSON response with service health status.
     """
     app.logger.info('Health check')
     return make_response(jsonify({'status': 'healthy'}), 200)
@@ -81,219 +86,129 @@ def db_check() -> Response:
 #
 ##########################################################
 
-@app.route('/api/add-favorite', methods=['POST'])
-def add_favorite() -> Response:
+@app.route('/api/search', methods=['GET'])
+def search_movies() -> Response:
     """
-    Adds a movie to the user's favorite list.
+    Search for movies by title using OMDB API.
 
-    Expected JSON Input:
-        - user_id (int): The user ID.
-        - movie_id (int): The movie ID to add to favorites.
+    Query Parameters:
+        title (str): The movie title to search for.
 
     Returns:
-        JSON response indicating success operation.
+        Response: JSON response containing search results.
+
     Raises:
-        400 error
-        500 error
+        400: If title parameter is missing.
+        500: If API request fails.
     """
-    app.logger.info('Creating new favorite song')
-
     try:
-        data = request.get_json()
-
-        user_id = data.get('user_id')
-        movie_id = data.get('movie_id')
-
-        if user_id is None or movie_id is None:
-            return make_response(jsonify({'error': 'user_id and movie_id are required'}), 400)
-
-        # Check that vars are ints 
-        try:
-            user_id = int(user_id)
-    
-        except ValueError as e:
-            return make_response(jsonify({'error': 'User_id must be a valid int'}), 400)
-
-        try:
-            movie_id = int(movie_id)
-    
-        except ValueError as e:
-            return make_response(jsonify({'error': 'Movie_id must be a valid int'}), 400)
-
-        # call the function
-        add_favorite_movie(user_id, movie_id)
-        app.logger.info(f"Added movie {movie_id} to user {user_id}'s favorites")
+        title = request.args.get('title')
+        if not title:
+            return make_response(jsonify({'error': 'Title parameter is required'}), 400)
         
-        return make_response(jsonify({'status': 'success'}), 201)
+        result = search_movies(title)
+        return make_response(jsonify(result), 200)
     except Exception as e:
-        app.logger.error(f"Failed to add favorite movie: {e}")
+        logger.error(f"Failed to search movies: {e}")
         return make_response(jsonify({'error': str(e)}), 500)
 
-
-@app.route('/api/get-favorites/<int:user_id>', methods=['GET'])
-def get_favorites(user_id: int) -> Response:
+@app.route('/api/movie/<movie_id>', methods=['GET'])
+def get_movie_details(movie_id: str) -> Response:
     """
-    Retrieves a user's favorite movies.
-
-    Path Parameter:
-        - user_id (int): The user ID.
-
-    Returns:
-        JSON response with the list of favorite movies.
-    Raises:
-        400 error
-        500 error
-    """
-    
-    try:
-        app.logger.info(f"Retrieving favorites my user_id: {user_id}")
-
-        if not user_id:
-            return make_response(jsonify({'error': 'User_id is required'}), 400)
-
-        favorites = get_favorite_movies(user_id)
-        return make_response(jsonify({'status': 'success', 'favorites': [movie.__dict__ for movie in favorites]}), 200)
-    except Exception as e:
-        logger.error(f"Failed to get favorite movies: {e}")
-        return make_response(jsonify({'error': str(e)}), 500)
-
-
-@app.route('/api/delete-favorite/<int:user_id>/<int:movie_id>', methods=['DELETE'])
-def delete_favorite(user_id: int, movie_id: int) -> Response:
-    """
-    Deletes a movie from a user's favorite list.
+    Get detailed information about a specific movie.
 
     Path Parameters:
-        - user_id (int): The user ID.
-        - movie_id (int): The movie ID to remove.
+        movie_id (str): The IMDB ID of the movie.
 
     Returns:
-        JSON response indicating success of the operation.
+        Response: JSON response containing movie details.
+
     Raises:
-        500 error
+        500: If API request fails.
     """
     try:
-        app.logger.info(f"Deleting meal by user and movie id: {user_id}, {movie_id}")
-        delete_favorite_movie(user_id, movie_id)
-        return make_response(jsonify({'status': 'success'}), 200)
+        result = get_movie_details(movie_id)
+        return make_response(jsonify(result), 200)
     except Exception as e:
-        logger.error(f"Failed to delete favorite movie: {e}")
+        logger.error(f"Failed to get movie details: {e}")
         return make_response(jsonify({'error': str(e)}), 500)
 
-
-@app.route('/api/get-movie/<int:movie_id>', methods=['GET'])
-def get_movie(movie_id: int) -> Response:
+@app.route('/api/search/year', methods=['GET'])
+def search_by_year() -> Response:
     """
-    Retrieves a movie by its movie ID.
+    Search for movies by title and year.
 
-    Path Parameter:
-        - movie_id (int): The ID of the movie to retrieve.
+    Query Parameters:
+        title (str): The movie title to search for.
+        year (str): The release year of the movie.
 
     Returns:
-        JSON response with movie details.
+        Response: JSON response containing search results.
+
     Raises:
-        500 error
+        400: If title or year parameters are missing.
+        500: If API request fails.
     """
     try:
-        app.logger.info(f"Retrieving movie by movie ID: {movie_id}")
-
-        movie = get_movie_by_id(movie_id)
-        return make_response(jsonify({'status': 'success', 'movie': movie.__dict__}), 200)
+        title = request.args.get('title')
+        year = request.args.get('year')
+        if not title or not year:
+            return make_response(jsonify({'error': 'Title and year parameters are required'}), 400)
+        
+        result = search_by_year(title, year)
+        return make_response(jsonify(result), 200)
     except Exception as e:
-        logger.error(f"Failed to get movie: {e}")
+        logger.error(f"Failed to search movies by year: {e}")
         return make_response(jsonify({'error': str(e)}), 500)
 
-
-@app.route('/api/rate-movie', methods=['POST'])
-def rate_movie() -> Response:
+@app.route('/api/movie/title/<title>', methods=['GET'])
+def get_movie_by_title(title: str) -> Response:
     """
-    Allows a user to rate a movie.
+    Get movie information by exact title match.
 
-    Expected JSON Input:
-        - user_id (int): The user ID.
-        - movie_id (int): The movie ID.
-        - rating (float): The rating between 0 and 10.
+    Path Parameters:
+        title (str): The exact title of the movie.
 
     Returns:
-        JSON response indicating success or error.
+        Response: JSON response containing movie information.
+
     Raises:
-        400 error
-        500 error
+        500: If API request fails.
     """
     try:
-        data = request.get_json()
-
-        user_id = data.get('user_id')
-        movie_id = data.get('movie_id')
-        rating = data.get('rating')
-
-        if user_id is None or movie_id is None or rating is None:
-            return make_response(jsonify({'error': 'user_id, movie_id, and rating are required'}), 400)
-
-        if not isinstance(rating, (float, int)) or not 0 <= rating <= 10:
-            return make_response(jsonify({'error': 'Rating must be a float between 0 and 10'}), 400)
-
-        rate_movie(user_id, movie_id, rating)
-        return make_response(jsonify({'status': 'success'}), 200)
+        result = get_movie_by_title(title)
+        return make_response(jsonify(result), 200)
     except Exception as e:
-        logger.error(f"Failed to rate movie: {e}")
+        logger.error(f"Failed to get movie by title: {e}")
         return make_response(jsonify({'error': str(e)}), 500)
 
-
-@app.route('/api/top-movies', methods=['GET'])
-def top_movies() -> Response:
+@app.route('/api/search/type', methods=['GET'])
+def search_by_type() -> Response:
     """
-    Retrieves the top-rated movies.
+    Search for media by type (movie, series, episode).
 
-    Query Parameter:
-        - limit (int): The number of top movies to retrieve (default is 10).
+    Query Parameters:
+        title (str): The title to search for.
+        type_ (str): The type of media (movie, series, episode).
 
     Returns:
-        JSON response with top-rated movies.
-    Raises: 
-        500 error
+        Response: JSON response containing search results.
+
+    Raises:
+        400: If title or type parameters are missing.
+        500: If API request fails.
     """
     try:
-        limit = request.args.get('limit', default=10, type=int)
-
-        app.logger.info("Generating top movie list")
-
-        top_movies_list = get_top_movies(limit)
-        return make_response(jsonify({'status': 'success', 'top_movies': [movie.__dict__ for movie in top_movies_list]}), 200)
+        title = request.args.get('title')
+        type_ = request.args.get('type')
+        if not title or not type_:
+            return make_response(jsonify({'error': 'Title and type parameters are required'}), 400)
+        
+        result = search_by_type(title, type_)
+        return make_response(jsonify(result), 200)
     except Exception as e:
-        logger.error(f"Failed to get top movies: {e}")
+        logger.error(f"Failed to search by type: {e}")
         return make_response(jsonify({'error': str(e)}), 500)
-
-
-@app.route('/api/add-watchlist', methods=['POST'])
-def add_watchlist() -> Response:
-    """
-    Adds a movie to a user's watchlist.
-
-    Expected JSON Input:
-        - user_id (int): The user ID.
-        - movie_id (int): The movie ID.
-
-    Returns:
-        JSON response indicating success.
-    """
-    app.logger.info('Creating new watchlist item')
-    try:
-        data = request.get_json()
-
-        user_id = data.get('user_id')
-        movie_id = data.get('movie_id')
-
-        if user_id is None or movie_id is None:
-            return make_response(jsonify({'error': 'user_id and movie_id are required'}), 400)
-
-        add_to_watchlist(user_id, movie_id)
-
-        return make_response(jsonify({'status': 'success'}), 201)
-    except Exception as e:
-        logger.error(f"Failed to add to watchlist: {e}")
-        return make_response(jsonify({'error': str(e)}), 500)
-
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
