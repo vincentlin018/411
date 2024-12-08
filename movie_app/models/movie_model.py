@@ -50,7 +50,7 @@ def search_movies(title: str) -> Dict:
         title (str): The title of the movie to search for.
 
     Returns:
-        Dict: JSON response containing search results from OMDB API.
+        Dict: JSON response containing search results from OMDB API - a list of the movies containing that title string.
 
     Raises:
         requests.RequestException: If the API request fails.
