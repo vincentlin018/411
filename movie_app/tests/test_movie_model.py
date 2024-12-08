@@ -78,14 +78,21 @@ def test_get_movie_details_success(mock_requests_get):
     assert result == mock_response
 
 def test_search_by_year_success(mock_requests_get):
-    """Test searching movies by title and year."""
+    """Test searching movies by year."""
     mock_response = {
-        'Search': [{'Title': 'Inception', 'Year': '2010', 'imdbID': 'tt1375666'}]
+        'Search': [
+            {'Title': 'Movie1', 'Year': '2010', 'imdbID': 'tt1234567'},
+            {'Title': 'Movie2', 'Year': '2010', 'imdbID': 'tt7654321'}
+        ]
     }
     mock_requests_get.return_value.json.return_value = mock_response
     
-    result = search_by_year('Inception', '2010')
+    result = search_by_year('2010')
     assert result == mock_response
+    mock_requests_get.assert_called_once()
+    params = mock_requests_get.call_args[1]['params']
+    assert params['y'] == '2010'
+    assert params['s'] == '*'
 
 def test_get_movie_by_title_success(mock_requests_get):
     """Test getting movie by exact title."""    
@@ -102,12 +109,19 @@ def test_get_movie_by_title_success(mock_requests_get):
 def test_search_by_type_success(mock_requests_get):
     """Test searching media by type."""
     mock_response = {
-        'Search': [{'Title': 'Inception', 'Type': 'movie', 'Year': '2010'}]
+        'Search': [
+            {'Title': 'Show1', 'Type': 'series', 'Year': '2020'},
+            {'Title': 'Show2', 'Type': 'series', 'Year': '2021'}
+        ]
     }
     mock_requests_get.return_value.json.return_value = mock_response
     
-    result = search_by_type('Inception', 'movie')
+    result = search_by_type('series')
     assert result == mock_response
+    mock_requests_get.assert_called_once()
+    params = mock_requests_get.call_args[1]['params']
+    assert params['type'] == 'series'
+    assert params['s'] == '*'
 
 def test_api_request_failure(mock_requests_get):
     """Test handling of API request failure."""
