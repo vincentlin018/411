@@ -9,6 +9,10 @@ from movie_app.models.movie_model import (
     get_movie_by_title,
     search_by_type
 )
+from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+from sql.user import db
+import sql.routes
 import logging
 app = Flask(__name__)
 
@@ -40,6 +44,26 @@ def get_movie_details(movie_id: str):
         'i': movie_id
     }
     return make_request(params)
+
+#Initializing the Flask app
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'your_secret_key'
+
+#Initializing the database and bcrypt
+db.init_app(app)
+bcrypt = Bcrypt(app)
+
+#Taking routes for the user login/account creation/updating password
+app.add_url_rule('/create_account', 'create_account', sql.routes.create_account, methods = ['POST'])
+app.add_url_rule('/login', 'login', sql.routes.login, methods = ['POST'])
+app.add_url_rule('/update_password', 'update_password', sql.routes.update_password, methods = ['POST'])
+
+#Initializing the database/creating tables
+@app.before_first_request
+def create_tables():
+    db.create_all()
 
 ####################################################
 #
