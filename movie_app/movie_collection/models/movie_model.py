@@ -85,27 +85,26 @@ def get_movie_details(movie_id: str) -> Dict:
     logger.info(f"Retrieved details for movie ID: {movie_id}")
     return response.json()
 
-def search_by_year(title: str, year: str) -> Dict:
+def search_by_year(year: str) -> Dict:
     """
-    Search for movies by title and year using the OMDB API.
+    Search for all movies from a specific year using the OMDB API.
 
     Args:
-        title (str): The title of the movie to search for.
-        year (str): The release year of the movie.
+        year (str): The release year of the movies to search for.
 
     Returns:
-        Dict: JSON response containing search results filtered by year.
+        Dict: JSON response containing search results for the specified year.
 
     Raises:
         requests.RequestException: If the API request fails.
     """
     params = {
-        's': title,
         'y': year,
+        's': '*',  # Wildcard search to get all movies
         'apikey': api_key
     }
     response = requests.get(BASE_URL, params=params)
-    logger.info(f"Searched for movies from year {year} with title: {title}")
+    logger.info(f"Searched for movies from year: {year}")
     return response.json()
 
 def get_movie_by_title(title: str) -> Dict:
@@ -129,12 +128,11 @@ def get_movie_by_title(title: str) -> Dict:
     logger.info(f"Retrieved movie by exact title: {title}")
     return response.json()
 
-def search_by_type(title: str, type_: str) -> Dict:
+def search_by_type(type: str) -> Dict:
     """
     Search for media by type using the OMDB API.
 
     Args:
-        title (str): The title to search for.
         type_ (str): The type of media ('movie', 'series', 'episode').
 
     Returns:
@@ -144,10 +142,10 @@ def search_by_type(title: str, type_: str) -> Dict:
         requests.RequestException: If the API request fails.
     """
     params = {
-        's': title,
-        'type': type_,
+        's': '*',  # Wildcard search to get all media of the specified type
+        'type': type,
         'apikey': api_key
     }
     response = requests.get(BASE_URL, params=params)
-    logger.info(f"Searched for {type_} with title: {title}")
+    logger.info(f"Searched for media of type: {type}")
     return response.json()
