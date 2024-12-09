@@ -1,10 +1,12 @@
 from dotenv import load_dotenv
 from flask import Flask, jsonify, make_response, Response, request
-from flask_sqlalchemy import SQLAlchem
+from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+from sql.user import db
+import sql.routes
 import os
 import requests
 import logging
-import bcrypt
 from movie_app.models.movie_model import (
     search_movies,
     get_movie_details,
@@ -12,14 +14,10 @@ from movie_app.models.movie_model import (
     get_movie_by_title,
     search_by_type
 )
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 load_dotenv()
 
@@ -27,15 +25,6 @@ load_dotenv()
 api_key = os.getenv('API_KEY')
 BASE_URL = f"http://www.omdbapi.com/?apikey={api_key}&"
 
-# User model
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    salt = db.Column(db.String(32), nullable=False)
-    hashed_password = db.Column(db.String(128), nullable=False)
-
-with app.app_context():
-    db.create_all()
 
 def make_request(params: dict):
     """Base function for making API requests"""
@@ -47,6 +36,27 @@ def make_request(params: dict):
     except requests.exceptions.RequestException as e:
         logger.error(f"OMDb API request failed: {e}")
         raise
+
+#Initializing the Flask app
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'your_secret_key'
+
+#Initializing the database and bcrypt
+db.init_app(app)
+bcrypt = Bcrypt(app)
+
+#Taking routes for the user login/account creation/updating password
+app.add_url_rule('/create_account', 'create_account', sql.routes.create_account, methods = ['POST'])
+app.add_url_rule('/login', 'login', sql.routes.login, methods = ['POST'])
+app.add_url_rule('/update_password', 'update_password', sql.routes.update_password, methods = ['POST'])
+
+#Initializing the database/creating tables
+@app.before_first_request
+def create_tables():
+    db.create_all()
+
 
 ####################################################
 #
@@ -62,13 +72,13 @@ def healthcheck() -> Response:
     Returns:
         Response: JSON response with service health status.
     """
-    logger.info('Health check')
+    app.logger.info('Health check')
     return make_response(jsonify({'status': 'healthy'}), 200)
 
 @app.route('/api/db-check', methods=['GET'])
 def db_check() -> Response:
     """
-    Route to check if the database connection and user table are functional.
+    Route to check if the database connection and movie table are functional.
 
     Returns:
         JSON response indicating the database health status.
@@ -76,12 +86,14 @@ def db_check() -> Response:
         404 error if there is an issue with the database.
     """
     try:
-        logger.info("Checking database connection...")
-        User.query.first()
-        logger.info("Database connection is OK.")
+        app.logger.info("Checking database connection...")
+        check_database_connection()
+        app.logger.info("Database connection is OK.")
+        app.logger.info("Checking if movie table exists...")
+        check_table_exists("movie")
+        app.logger.info("movie table exists.")
         return make_response(jsonify({'database_status': 'healthy'}), 200)
     except Exception as e:
-        logger.error(f"Database check failed: {str(e)}")
         return make_response(jsonify({'error': str(e)}), 404)
 
 
@@ -210,114 +222,6 @@ def search_media_type() -> Response:
     except Exception as e:
         logger.error(f"Failed to search by type: {e}")
         return make_response(jsonify({'error': str(e)}), 500)
-    
-####################################################
-#
-# User Authentication Routes
-#
-####################################################
-
-@app.route('/create-account', methods=['POST'])
-def create_account():
-    """
-    Create a new user account.
-    
-    Expects a JSON payload with 'username' and 'password'.
-    Returns a success message and 201 status code if account is created,
-    or an error message with appropriate status code if creation fails.
-    """
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
-
-    logger.info(f"Attempting to create account for user: {username}")
-
-    if not username or not password:
-        logger.warning("Account creation failed: Missing username or password")
-        return jsonify({"error": "Username and password are required"}), 400
-    
-    if User.query.filter_by(username=username).first():
-        logger.warning(f"Account creation failed: Username {username} already exists")
-        return jsonify({"error": "Username already exists"}), 400
-    
-    salt = bcrypt.gensalt()
-    hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
-
-    new_user = User(username=username, salt=salt.decode(), hashed_password=hashed_password.decode())
-    db.session.add(new_user)
-    db.session.commit()
-
-    logger.info(f"Account created successfully for user: {username}")
-    return jsonify({"message": f"User {username} created successfully"}), 201
-
-@app.route('/login', methods=['POST'])
-def login():
-    """
-    Authenticate a user.
-    
-    Expects a JSON payload with 'username' and 'password'.
-    Returns a success message if login is successful,
-    or an error message with appropriate status code if login fails.
-    """
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
-
-    logger.info(f"Login attempt for user: {username}")
-
-    if not username or not password:
-        logger.warning("Login failed: Missing username or password")
-        return jsonify({"error": "Username and password are required"}), 400
-    
-    user = User.query.filter_by(username=username).first()
-
-    if user and bcrypt.checkpw(password.encode('utf-8'), user.hashed_password.encode('utf-8')):
-        logger.info(f"Login successful for user: {username}")
-        return jsonify({"message": "Login successful"}), 200
-    else:
-        logger.warning(f"Login failed for user: {username}")
-        return jsonify({"error": "Invalid credentials"}), 401
-
-@app.route('/update-password', methods=['PUT'])
-def update_password():
-    """
-    Update a user's password.
-    
-    Expects a JSON payload with 'username', 'old_password', and 'new_password'.
-    Returns a success message if password is updated successfully,
-    or an error message with appropriate status code if update fails.
-    """
-    data = request.get_json()
-    username = data.get('username')
-    old_password = data.get('old_password')
-    new_password = data.get('new_password')
-
-    logger.info(f"Password update attempt for user: {username}")
-
-    if not username or not old_password or not new_password:
-        logger.warning("Password update failed: Missing required fields")
-        return jsonify({"error": "Username, old password, and new password are required"}), 400
-    
-    user = User.query.filter_by(username=username).first()
-
-    if not user:
-        logger.warning(f"Password update failed: User {username} not found")
-        return jsonify({"error": "User not found"}), 404
-    
-    if not bcrypt.checkpw(old_password.encode('utf-8'), user.hashed_password.encode('utf-8')):
-        logger.warning(f"Password update failed: Incorrect old password for user {username}")
-        return jsonify({"error": "Old password is incorrect"}), 400
-    
-    salt = bcrypt.gensalt()
-    hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), salt)
-
-    user.salt = salt.decode()
-    user.hashed_password = hashed_password.decode()
-    db.session.commit()
-
-    logger.info(f"Password updated successfully for user: {username}")
-    return jsonify({"message": "Password updated successfully"}), 200
-
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
