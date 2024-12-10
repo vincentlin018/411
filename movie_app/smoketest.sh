@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Script: simple_smoketest.sh
 # Description: Performs basic smoke tests on the movie application API endpoints
 # Usage: ./simple_smoketest.sh [--echo-json]
 
