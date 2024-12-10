@@ -9,7 +9,7 @@ import requests
 import logging
 from movie_collection.models.movie_model import (
     search_movies,
-    get_movie_details,
+    get_movie_details,  
     search_by_year,
     get_movie_by_title,
     search_by_type
@@ -57,9 +57,9 @@ def create_app(config=None):
             raise
 
     # Initialize database
-    def create_tables(app):
-        with app.app_context():
-            db.create_all()
+    @app.before_first_request
+    def create_tables():
+        db.create_all()
 
     ####################################################
     #
@@ -67,22 +67,46 @@ def create_app(config=None):
     #
     ####################################################
 
-    @app.route('/api/health', methods=['GET'])
-    def healthcheck() -> Response:
-        """Health check endpoint to verify the service is running."""
-        app.logger.info('Health check')
-        return make_response(jsonify({'status': 'healthy'}), 200)
+    # Root endpoint
+    @app.route('/')
+    def home():
+        """
+        Root endpoint that returns a simple status check
+        Returns:
+            JSON response indicating the service is running
+        """
+        return jsonify({'status': 'ok'})
 
-    @app.route('/api/db-check', methods=['GET'])
-    def db_check() -> Response:
-        """Route to check database connection and movie table."""
-        try:
-            app.logger.info("Checking database connection...")
-            # Add your database connection check here
-            app.logger.info("Database connection is OK.")
-            return make_response(jsonify({'database_status': 'healthy'}), 200)
-        except Exception as e:
-            return make_response(jsonify({'error': str(e)}), 404)
+    # Health check endpoint
+    @app.route('/api/health')
+    def health_check():
+        """
+        Health check endpoint to verify service status
+        Returns:
+            JSON response with health status and 200 OK status code
+        """
+        return jsonify({'status': 'healthy'}), 200
+
+    # Database check endpoint
+    @app.route('/api/db-check')
+    def db_check():
+        """
+        Database connection check endpoint
+        TODO: Implement actual database connection verification
+        Returns:
+            JSON response with database status and 200 OK status code
+        """
+        # Add your database connection check logic here
+        return jsonify({'database_status': 'healthy'}), 200
+
+    # Run the application if this file is executed directly
+    if __name__ == '__main__':
+        """
+        Start the Flask application with the following configuration:
+        - host='0.0.0.0': Allow external connections
+        - port=5000: Run on port 5000
+        """
+        app.run(host='0.0.0.0', port=5000)
 
     ##########################################################
     #

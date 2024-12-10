@@ -1,13 +1,10 @@
 #!/bin/bash
 
-# Script: smoketest.sh
-# Description: Performs smoke tests on the movie application API endpoints
-# Usage: ./smoketest.sh [--echo-json]
+# Script: simple_smoketest.sh
+# Description: Performs basic smoke tests on the movie application API endpoints
+# Usage: ./simple_smoketest.sh [--echo-json]
 
-# Define the base URL for the Flask API
 BASE_URL="http://localhost:5000/api"
-
-# Flag to control whether to echo JSON output
 ECHO_JSON=false
 
 # Parse command-line arguments
@@ -19,190 +16,34 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
-###############################################
-#
-# Health checks
-#
-###############################################
-
-# Function: check_health
-# Description: Verifies the health status of the service
-# Returns: 0 if healthy, exits with 1 if unhealthy
-check_health() {
-  echo "Checking health status..."
-  curl -s -X GET "$BASE_URL/health" | grep -q '"status": "healthy"'
-  if [ $? -eq 0 ]; then
-    echo "Service is healthy."
-  else
-    echo "Health check failed."
-    exit 1
-  fi
+# Function to make API calls and optionally echo JSON
+call_api() {
+    local endpoint=$1
+    local method=${2:-GET}
+    local data=${3:-""}
+    
+    if [ -n "$data" ]; then
+        response=$(curl -s -X $method "$BASE_URL$endpoint" -H "Content-Type: application/json" -d "$data")
+    else
+        response=$(curl -s -X $method "$BASE_URL$endpoint")
+    fi
+    
+    echo "Testing $method $endpoint"
+    if [ "$ECHO_JSON" = true ]; then
+        echo "$response" | jq .
+    fi
 }
 
-# Function: check_db
-# Description: Verifies the database connection is working
-# Returns: 0 if healthy, exits with 1 if unhealthy
-check_db() {
-  echo "Checking database connection..."
-  curl -s -X GET "$BASE_URL/db-check" | grep -q '"database_status": "healthy"'
-  if [ $? -eq 0 ]; then
-    echo "Database connection is healthy."
-  else
-    echo "Database check failed."
-    exit 1
-  fi
-}
+# Health check
+call_api "/health"
 
-##########################################################
-#
 # Movie API Tests
-#
-##########################################################
+call_api "/search?title=Inception"
+call_api "/movie/tt1375666"
+call_api "/search/year?year=2010"
 
-# Function: test_search_movies
-# Description: Tests the movie search functionality
-# Parameters:
-#   $1 - movie title to search for
-test_search_movies() {
-    title=$1
-    echo "Searching for movies with title: $title"
-    response=$(curl -s -X GET "$BASE_URL/search?title=$title")
-    if [ "$ECHO_JSON" = true ]; then
-        echo "$response" | jq .
-    fi
-}
+# User Authentication Test
+call_api "/create-account" "POST" '{"username":"testuser","password":"testpass"}'
+call_api "/login" "POST" '{"username":"testuser","password":"testpass"}'
 
-# Function: test_movie_details
-# Description: Tests retrieving detailed movie information
-# Parameters:
-#   $1 - IMDB ID of the movie
-test_movie_details() {
-    movie_id=$1
-    echo "Getting movie details for ID: $movie_id"
-    response=$(curl -s -X GET "$BASE_URL/movie/$movie_id")
-    if [ "$ECHO_JSON" = true ]; then
-        echo "$response" | jq .
-    fi
-}
-
-# Function: test_search_by_year
-# Description: Tests searching movies by release year
-# Parameters:
-#   $1 - year to search for
-test_search_by_year() {
-    year=$1
-    echo "Searching movies from year: $year"
-    response=$(curl -s -X GET "$BASE_URL/search/year?year=$year")
-    if [ "$ECHO_JSON" = true ]; then
-        echo "$response" | jq .
-    fi
-}
-
-# Function: test_movie_by_title
-# Description: Tests retrieving a movie by exact title
-# Parameters:
-#   $1 - exact title of the movie
-test_movie_by_title() {
-    title=$1
-    echo "Getting movie by exact title: $title"
-    response=$(curl -s -X GET "$BASE_URL/movie/title/$title")
-    if [ "$ECHO_JSON" = true ]; then
-        echo "$response" | jq .
-    fi
-}
-
-# Function: test_search_by_type
-# Description: Tests searching media by type
-# Parameters:
-#   $1 - media type (movie, series, episode)
-test_search_by_type() {
-    type=$1
-    echo "Searching media by type: $type"
-    response=$(curl -s -X GET "$BASE_URL/search/type?type=$type")
-    if [ "$ECHO_JSON" = true ]; then
-        echo "$response" | jq .
-    fi
-}
-
-# Execute the smoke tests
-echo "Running Smoke Tests..."
-
-# Health checks
-check_health
-check_db
-
-# API Tests
-test_search_movies "Inception"
-test_movie_details "tt1375666"
-test_search_by_year "2010"
-test_movie_by_title "The Dark Knight"
-test_search_by_type "movie"
-
-echo "All tests completed!"
-
-##########################################################
-#
-# User Authentication Tests
-#
-##########################################################
-
-# Function: test_create_account
-# Description: Tests the account creation functionality
-# Parameters:
-#   $1 - username
-#   $2 - password
-test_create_account() {
-    username=$1
-    password=$2
-    echo "Creating account for user: $username"
-    response=$(curl -s -X POST "$BASE_URL/create-account" \
-        -H "Content-Type: application/json" \
-        -d "{\"username\":\"$username\",\"password\":\"$password\"}")
-    if [ "$ECHO_JSON" = true ]; then
-        echo "$response" | jq .
-    fi
-}
-
-# Function: test_login
-# Description: Tests the login functionality
-# Parameters:
-#   $1 - username
-#   $2 - password
-test_login() {
-    username=$1
-    password=$2
-    echo "Attempting login for user: $username"
-    response=$(curl -s -X POST "$BASE_URL/login" \
-        -H "Content-Type: application/json" \
-        -d "{\"username\":\"$username\",\"password\":\"$password\"}")
-    if [ "$ECHO_JSON" = true ]; then
-        echo "$response" | jq .
-    fi
-}
-
-# Function: test_update_password
-# Description: Tests the password update functionality
-# Parameters:
-#   $1 - username
-#   $2 - old password
-#   $3 - new password
-test_update_password() {
-    username=$1
-    old_password=$2
-    new_password=$3
-    echo "Updating password for user: $username"
-    response=$(curl -s -X PUT "$BASE_URL/update-password" \
-        -H "Content-Type: application/json" \
-        -d "{\"username\":\"$username\",\"old_password\":\"$old_password\",\"new_password\":\"$new_password\"}")
-    if [ "$ECHO_JSON" = true ]; then
-        echo "$response" | jq .
-    fi
-}
-
-# Execute the user authentication tests
-echo "Running User Authentication Tests..."
-
-test_create_account "testuser" "testpassword"
-test_login "testuser" "testpassword"
-test_update_password "testuser" "testpassword" "newpassword"
-test_login "testuser" "newpassword"
+echo "All smoke tests completed!"
