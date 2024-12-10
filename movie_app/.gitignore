@@ -1,0 +1,16 @@
+# Environment Variables
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
