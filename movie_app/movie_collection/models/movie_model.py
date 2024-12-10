@@ -4,7 +4,7 @@ import os
 import requests
 from typing import List, Dict
 from dotenv import load_dotenv
-from movie_app.utils.logger import configure_logger
+from movie_collection.utils.logger import configure_logger
 
 logger = logging.getLogger(__name__)
 configure_logger(logger)

@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 import requests
-from movie_app.models.movie_model import (
+from movie_collection.models.movie_model import (
     Movie,
     search_movies,
     get_movie_details,

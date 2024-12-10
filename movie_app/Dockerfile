@@ -7,11 +7,23 @@ WORKDIR /app
 # Copy the current directory contents into the container at /app
 COPY . /app
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy the env file to the container
+COPY .env /app/.env
 
-# Expose port 5000 for the app
+# Install any needed packages specified in requirements.lock
+RUN pip install --no-cache-dir -r requirements.lock
+
+# Install SQLite3
+RUN apt-get update && apt-get install -y sqlite3
+
+# Make the entrypoint script executable
+RUN chmod +x /app/entrypoint.sh
+
+# Define a volume for persisting the database
+VOLUME ["/app/movie_app/db"]
+
+# Make port 5000 available to the world outside this container
 EXPOSE 5000
 
-# Command to run the application
-CMD ["python", "app.py"]
+# Run the entrypoint script when the container launches
+CMD ["/app/entrypoint.sh"

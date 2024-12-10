@@ -1,9 +1,12 @@
 import pytest
-from unittest.mock import patch, MagicMock
-from flask import Flask, jsonify
+from flask import json
+from werkzeug.security import generate_password_hash
 from flask_bcrypt import Bcrypt
-from user import User, db
-from routes import create_account, login, update_password
+from datetime import timedelta
+from flask_jwt_extended import JWTManager
+from app import create_app
+from sql.user import User, db
+from sql.routes import routes
 
 bcrypt = Bcrypt()
 
@@ -14,26 +17,26 @@ bcrypt = Bcrypt()
 ######################################################
 
 @pytest.fixture
-def mock_user_model(mocker):
-    """Mock the User model."""
-    return mocker.patch("routes.User")
-
-@pytest.fixture
-def mock_db_session(mocker):
-    """Mock the database session."""
-    return mocker.patch("routes.db.session")
-
-@pytest.fixture
 def app():
-    """Fixture for Flask app."""
-    app = Flask(__name__)
-    app.config["TESTING"] = True
+    app = create_app({
+        'TESTING': True,
+        'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
+        'JWT_TOKEN_LOCATION': ['headers'],
+        'JWT_SECRET_KEY': 'testing-key',
+        'JWT_ACCESS_TOKEN_EXPIRES': timedelta(hours=1)
+    })
+    return app
+
+@pytest.fixture
+def client(app):
     return app.test_client()
 
 @pytest.fixture
-def valid_user():
-    """Fixture for a valid user."""
-    return User(username="testuser", salt="salt123", hashed_password=bcrypt.generate_password_hash("passwordsalt123").decode())
+def init_database(app):
+    with app.app_context():
+        db.create_all()
+        yield db
+        db.drop_all()
 
 ######################################################
 #
@@ -41,33 +44,35 @@ def valid_user():
 #
 ######################################################
 
-def test_create_account_success(app, mock_user_model, mock_db_session):
-    """Test successful account creation."""
-    mock_user_model.query.filter_by.return_value.first.return_value = None
-
-    response = app.post(
-        "/create_account",
-        json={"username": "newuser", "password": "securepassword"},
-    )
+def test_create_account(client, init_database):
+    response = client.post('/create-account', json={
+        'username': 'testuser',
+        'password': 'testpassword'
+    })
     assert response.status_code == 201
-    assert response.json["message"] == "User newuser created successfully"
+    assert response.json['message'] == 'Account created successfully.'
 
-def test_create_account_missing_fields(app):
-    """Test account creation with missing fields."""
-    response = app.post("/create_account", json={"username": "newuser"})
+def test_create_account_duplicate(client, init_database):
+    # First creation
+    client.post('/create-account', json={
+        'username': 'testuser',
+        'password': 'testpassword'
+    })
+    
+    # Duplicate creation attempt
+    response = client.post('/create-account', json={
+        'username': 'testuser',
+        'password': 'testpassword'
+    })
+    assert response.status_code == 409
+    assert response.json['error'] == 'Username already exists.'
+
+def test_create_account_missing_fields(client):
+    response = client.post('/create-account', json={
+        'username': 'testuser'
+    })
     assert response.status_code == 400
-    assert response.json["error"] == "Username and password are required"
-
-def test_create_account_existing_user(app, mock_user_model):
-    """Test account creation with an existing username."""
-    mock_user_model.query.filter_by.return_value.first.return_value = MagicMock()
-
-    response = app.post(
-        "/create_account",
-        json={"username": "existinguser", "password": "securepassword"},
-    )
-    assert response.status_code == 400
-    assert response.json["error"] == "Username already exists"
+    assert response.json['error'] == 'Username and password are required.'
 
 ######################################################
 #
@@ -75,31 +80,41 @@ def test_create_account_existing_user(app, mock_user_model):
 #
 ######################################################
 
-def test_login_success(app, mock_user_model, valid_user):
-    """Test successful login."""
-    mock_user_model.query.filter_by.return_value.first.return_value = valid_user
+def test_login_success(client, init_database):
+    # Create user through the API
+    client.post('/create-account', json={
+        'username': 'testuser',
+        'password': 'testpassword'
+    })
 
-    response = app.post(
-        "/login", json={"username": "testuser", "password": "password"}
-    )
+    response = client.post('/login', json={
+        'username': 'testuser',
+        'password': 'testpassword'
+    })
     assert response.status_code == 200
-    assert response.json["message"] == "Login successful"
+    assert response.json['message'] == 'Login successful.'
+    assert 'access_token' in response.json
 
-def test_login_invalid_credentials(app, mock_user_model):
-    """Test login with invalid credentials."""
-    mock_user_model.query.filter_by.return_value.first.return_value = None
+def test_login_invalid_credentials(client, init_database):
+    # Create user
+    client.post('/create-account', json={
+        'username': 'testuser',
+        'password': 'testpassword'
+    })
 
-    response = app.post(
-        "/login", json={"username": "testuser", "password": "wrongpassword"}
-    )
+    response = client.post('/login', json={
+        'username': 'testuser',
+        'password': 'wrongpassword'
+    })
     assert response.status_code == 401
-    assert response.json["error"] == "Invalid credentials"
+    assert response.json['error'] == 'Incorrect username or password.'
 
-def test_login_missing_fields(app):
-    """Test login with missing fields."""
-    response = app.post("/login", json={"username": "testuser"})
+def test_login_missing_fields(client):
+    response = client.post('/login', json={
+        'username': 'testuser'
+    })
     assert response.status_code == 400
-    assert response.json["error"] == "Username and password are required"
+    assert response.json['error'] == 'Username and password are required.'
 
 ######################################################
 #
@@ -107,53 +122,82 @@ def test_login_missing_fields(app):
 #
 ######################################################
 
-def test_update_password_success(app, mock_user_model, valid_user):
-    """Test successful password update."""
-    mock_user_model.query.filter_by.return_value.first.return_value = valid_user
+def test_update_password_success(client, init_database):
+    # Create user and login
+    client.post('/create-account', json={
+        'username': 'testuser',
+        'password': 'oldpassword'
+    })
+    
+    login_response = client.post('/login', json={
+        'username': 'testuser',
+        'password': 'oldpassword'
+    })
+    access_token = login_response.json['access_token']
 
-    response = app.post(
-        "/update_password",
-        json={
-            "username": "testuser",
-            "old_password": "password",
-            "new_password": "newpassword",
-        },
-    )
+    response = client.put('/update-password', 
+                         json={
+                             'old_password': 'oldpassword',
+                             'new_password': 'newpassword'
+                         },
+                         headers={'Authorization': f'Bearer {access_token}'})
     assert response.status_code == 200
-    assert response.json["message"] == "Password updated successfully"
+    assert response.json['message'] == 'Password updated successfully.'
 
-def test_update_password_user_not_found(app, mock_user_model):
-    """Test updating password for a nonexistent user."""
-    mock_user_model.query.filter_by.return_value.first.return_value = None
+def test_update_password_invalid_old_password(client, init_database):
+    # Create user and login
+    client.post('/create-account', json={
+        'username': 'testuser',
+        'password': 'oldpassword'
+    })
+    
+    login_response = client.post('/login', json={
+        'username': 'testuser',
+        'password': 'oldpassword'
+    })
+    access_token = login_response.json['access_token']
 
-    response = app.post(
-        "/update_password",
-        json={
-            "username": "nonexistentuser",
-            "old_password": "password",
-            "new_password": "newpassword",
-        },
-    )
-    assert response.status_code == 404
-    assert response.json["error"] == "User not found"
+    response = client.put('/update-password', 
+                         json={
+                             'old_password': 'wrongpassword',
+                             'new_password': 'newpassword'
+                         },
+                         headers={'Authorization': f'Bearer {access_token}'})
+    assert response.status_code == 401
+    assert response.json['error'] == 'Incorrect old password.'
 
-def test_update_password_incorrect_old_password(app, mock_user_model, valid_user):
-    """Test updating password with an incorrect old password."""
-    mock_user_model.query.filter_by.return_value.first.return_value = valid_user
+def test_update_password_missing_fields(client, init_database):
+    # Create user and login
+    create_response = client.post('/create-account', json={
+        'username': 'testuser',
+        'password': 'testpassword'
+    })
+    assert create_response.status_code == 201, f"Account creation failed with status code {create_response.status_code}"
 
-    response = app.post(
-        "/update_password",
-        json={
-            "username": "testuser",
-            "old_password": "wrongpassword",
-            "new_password": "newpassword",
-        },
-    )
+    login_response = client.post('/login', json={
+        'username': 'testuser',
+        'password': 'testpassword'
+    })
+    assert login_response.status_code == 200, f"Login failed with status code {login_response.status_code}"
+
+    print("Login response:", login_response.json)  # Debug print
+
+    access_token = login_response.json.get('access_token')
+    if access_token is None:
+        pytest.fail("Access token not found in login response")
+
+    response = client.put('/update-password', 
+                         json={
+                             'old_password': 'testpassword'
+                         },
+                         headers={'Authorization': f'Bearer {access_token}'})
     assert response.status_code == 400
-    assert response.json["error"] == "old password is incorrect"
+    assert response.json['error'] == 'Old password and new password are required.'
 
-def test_update_password_missing_fields(app):
-    """Test updating password with missing fields."""
-    response = app.post("/update_password", json={"username": "testuser"})
-    assert response.status_code == 400
-    assert response.json["error"] == "Username, old password, and new password are required"
+def test_update_password_no_auth(client):
+    response = client.put('/update-password', 
+                         json={
+                             'old_password': 'oldpassword',
+                             'new_password': 'newpassword'
+                         })
+    assert response.status_code == 401
