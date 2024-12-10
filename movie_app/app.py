@@ -16,6 +16,15 @@ from movie_collection.models.movie_model import (
 )
 
 def create_app(config=None):
+    """
+    Create and configure the Flask application.
+
+    Args:
+        config (dict, optional): Configuration dictionary to override default settings.
+
+    Returns:
+        Flask: Configured Flask application instance.
+    """
     # Configure logging
     logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.INFO)
@@ -46,7 +55,18 @@ def create_app(config=None):
     BASE_URL = f"http://www.omdbapi.com/?apikey={api_key}&"
 
     def make_request(params: dict):
-        """Base function for making API requests"""
+        """
+        Make a request to the OMDb API.
+
+        Args:
+            params (dict): Dictionary of query parameters for the API request.
+
+        Returns:
+            dict: JSON response from the API.
+
+        Raises:
+            requests.exceptions.RequestException: If the API request fails.
+        """
         try:
             params['apikey'] = api_key
             response = requests.get(BASE_URL, params=params)
@@ -56,9 +76,13 @@ def create_app(config=None):
             logger.error(f"OMDb API request failed: {e}")
             raise
 
-    # Initialize database
     @app.before_first_request
     def create_tables():
+        """
+        Initialize the database by creating all tables defined in the models.
+
+        This function is called before the first request to the application.
+        """
         db.create_all()
 
     ####################################################
@@ -67,46 +91,38 @@ def create_app(config=None):
     #
     ####################################################
 
-    # Root endpoint
     @app.route('/')
     def home():
         """
-        Root endpoint that returns a simple status check
+        Root endpoint that returns a simple status check.
+
         Returns:
-            JSON response indicating the service is running
+            JSON response indicating the service is running.
         """
         return jsonify({'status': 'ok'})
 
-    # Health check endpoint
     @app.route('/api/health')
     def health_check():
         """
-        Health check endpoint to verify service status
+        Health check endpoint to verify service status.
+
         Returns:
-            JSON response with health status and 200 OK status code
+            JSON response with health status and 200 OK status code.
         """
         return jsonify({'status': 'healthy'}), 200
 
-    # Database check endpoint
     @app.route('/api/db-check')
     def db_check():
         """
-        Database connection check endpoint
-        TODO: Implement actual database connection verification
+        Database connection check endpoint.
+
+        TODO: Implement actual database connection verification.
+
         Returns:
-            JSON response with database status and 200 OK status code
+            JSON response with database status and 200 OK status code.
         """
         # Add your database connection check logic here
         return jsonify({'database_status': 'healthy'}), 200
-
-    # Run the application if this file is executed directly
-    if __name__ == '__main__':
-        """
-        Start the Flask application with the following configuration:
-        - host='0.0.0.0': Allow external connections
-        - port=5000: Run on port 5000
-        """
-        app.run(host='0.0.0.0', port=5000)
 
     ##########################################################
     #
@@ -116,6 +132,12 @@ def create_app(config=None):
 
     @app.route('/api/search', methods=['GET'])
     def search_movies_route() -> Response:
+        """
+        Search for movies by title.
+
+        Returns:
+            Response: JSON response with search results or error message.
+        """
         try:
             title = request.args.get('title')
             if not title:
@@ -128,6 +150,15 @@ def create_app(config=None):
 
     @app.route('/api/movie/<movie_id>', methods=['GET'])
     def get_movie_details_route(movie_id: str) -> Response:
+        """
+        Get details for a specific movie by ID.
+
+        Args:
+            movie_id (str): The ID of the movie to retrieve details for.
+
+        Returns:
+            Response: JSON response with movie details or error message.
+        """
         try:
             result = get_movie_details(movie_id)
             return make_response(jsonify(result), 200)
@@ -137,6 +168,12 @@ def create_app(config=None):
 
     @app.route('/api/search/year', methods=['GET'])
     def search_year_route() -> Response:
+        """
+        Search for movies by year.
+
+        Returns:
+            Response: JSON response with search results or error message.
+        """
         try:
             year = request.args.get('year')
             if not year:
@@ -149,6 +186,15 @@ def create_app(config=None):
 
     @app.route('/api/movie/title/<title>', methods=['GET'])
     def get_movie_by_title_route(title: str) -> Response:
+        """
+        Get movie details by title.
+
+        Args:
+            title (str): The title of the movie to retrieve details for.
+
+        Returns:
+            Response: JSON response with movie details or error message.
+        """
         try:
             result = get_movie_by_title(title)
             return make_response(jsonify(result), 200)
@@ -158,6 +204,12 @@ def create_app(config=None):
 
     @app.route('/api/search/type', methods=['GET'])
     def search_media_type_route() -> Response:
+        """
+        Search for media by type (e.g., movie, series, episode).
+
+        Returns:
+            Response: JSON response with search results or error message.
+        """
         try:
             type_ = request.args.get('type')
             if not type_:
