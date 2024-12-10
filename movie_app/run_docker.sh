@@ -5,8 +5,8 @@ IMAGE_NAME="movie_app"
 CONTAINER_TAG="1.0.0"
 HOST_PORT=5000
 CONTAINER_PORT=5000
-DB_VOLUME_PATH="./db"  # Adjust this to the desired host path for database persistence
-BUILD=true  # Set this to true if you want to build the image
+DB_VOLUME_PATH="./movie_app/db"  # Updated path to match project structure
+BUILD=true
 
 # Check if we need to build the Docker image
 if [ "$BUILD" = true ]; then
@@ -45,7 +45,7 @@ docker run -d \
   --name ${IMAGE_NAME}_container \
   --env-file .env \
   -p ${HOST_PORT}:${CONTAINER_PORT} \
-  -v ${DB_VOLUME_PATH}:/app/db \
+  -v ${DB_VOLUME_PATH}:/app/movie_app/db \
   ${IMAGE_NAME}:${CONTAINER_TAG}
 
 echo "Docker container is running on port ${HOST_PORT}."
