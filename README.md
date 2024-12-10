@@ -4,19 +4,19 @@ The Movie Recommendation App offers users straightforward access to movie inform
 
 # Features
 
-1. **Search Movies**
+1. **Search Movies:**
     Allows users to search for a list of movies by title using the OMDB API.
 
-2. **Get Movie Details**
+2. **Get Movie Details:**
     Allows users to get detailed information about a specific movie using its IMDB ID.
 
-3. **Search by Year**
+3. **Search by Year:**
     Allows users to search for all movies from a specific year using the OMDB API.
 
-4. **Get Movie by Title**
+4. **Get Movie by Title:**
     Allows a user to get specific movie information by exact title match using the OMDB API.
 
-5. **Search by type**
+5. **Search by type:**
     Allows users to search for media by type (movie, series, or episode) using the OMDB API.
 
 
