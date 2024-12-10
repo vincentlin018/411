@@ -23,7 +23,6 @@ The Movie Recommendation App offers users straightforward access to movie inform
 # Routes
 
 ## Route: /create-account
-
 - **Request Type:** POST
 - **Purpose:** Creates a new user account with a username and password.
 - **Request Body:**
@@ -33,7 +32,7 @@ The Movie Recommendation App offers users straightforward access to movie inform
     - Success Response Example:
         - Code: 201
           Content: { "message": "Account created successfully" }
-    - Error Responses:
+    - Error Response Examples:
         - Code: 400
           Content: { "error": "Username and password are required" }
         - Code: 409
@@ -51,6 +50,7 @@ The Movie Recommendation App offers users straightforward access to movie inform
         "status": "201"
     }
 
+
 ## Route: /login
 - **Request Type:** POST
 - **Purpose:** Authenticates a user with a username and password.
@@ -61,7 +61,7 @@ The Movie Recommendation App offers users straightforward access to movie inform
     - Success Response Example:
         - Code: 200
         - Content: { "message": "Login successful", "access_token" : "{access_token}" }
-    - Error Responses:
+    - Error Response Examples:
         - Code: 400
           Content: { "error": "Username and password are required" }
         - Code: 401
@@ -78,6 +78,7 @@ The Movie Recommendation App offers users straightforward access to movie inform
         "status": "200"
     }
 
+
 ## Route: /update-password
 - **Request Type:** PUT
 - **Purpose:** Allows users to change their password by providing their current password for verification.
@@ -88,7 +89,7 @@ The Movie Recommendation App offers users straightforward access to movie inform
     - Success Response Example:
         - Code: 200
         - Content: { "message": "Password updated successfully" }
-    - Error Responses:
+    - Error Response Examples:
         - Code: 400
           Content: { "error": "Old password and new password are required" }
         - Code: 404
@@ -96,7 +97,7 @@ The Movie Recommendation App offers users straightforward access to movie inform
         - Code: 401
           Content: { "error": "Incorrect old password" }
         - Code: 500
-          Content: { "error": "Exception Error" }
+          Content: { "error": Exception Error }
 - **Example Request:**
     {
         "old_password": "currentpassword",
@@ -107,3 +108,179 @@ The Movie Recommendation App offers users straightforward access to movie inform
         "message": "Password updated successfully"
         "status": "200"
     }
+
+
+## Route: /api/health
+- **Request Type:** GET
+- **Purpose:** Checks the health of the application server.
+- **Response Format:** JSON
+    - Success Response Example:
+        - Code: 200
+        - Content: { "status": "healthy" }
+     
+## Route: /api/db-check
+- **Request Type:** GET
+- **Purpose:** Verifies the connection to the database.
+- **Response Format:** JSON
+    - Success Response Example:
+        - Code: 200
+        - Content: { "database_status": "healthy" }
+    - Error Response Examples:
+        - Code: 404
+        - Content: { "error": Exception Error }
+
+     
+## Route: /api/search
+- **Request Type:** GET
+- **Purpose:** Searches for movies based on a title.
+- **Request Body:**
+    - title (String): The title of the movie to search for.
+- **Response Format:** JSON
+    - Success Response Example:
+        - Code: 200
+        - Content: Search results in JSON format.
+    - Error Response Examples:
+        - Code: 400
+          Content: { "error": "Title parameter is required" }
+        - Code: 500
+          Content: { "error": "Error message from the exception" }
+- **Example Request:**
+    {
+        "title": "Inception"
+    }
+- **Example Response:**
+    {
+        "movies": [
+          {
+              "title": "Inception",
+              "year": "2010",
+              "director": "Christopher Nolan",
+              "genre": "Sci-Fi, Thriller"
+          }
+      ]
+    }
+
+
+## Route: /api/movie/<movie_id>
+- **Request Type:** GET
+- **Purpose:** Retrieves details for a specific movie by its ID.
+- **Request Body:**
+    - movie_id (String): The unique identifier for the movie.
+- **Response Format:** JSON
+    - Success Response Example:
+        - Code: 200
+        - Content: Movie details in JSON format
+    - Error Response Examples:
+        - Code: 500
+          Content: { "error": Exception Error }
+- **Example Request:**
+    {
+        "movie_id": "12345",
+    }
+- **Example Response:**
+    {
+      "title": "Inception",
+      "year": "2010",
+      "director": "Christopher Nolan",
+      "cast": ["Leonardo DiCaprio", "Joseph Gordon-Levitt"],
+      "genre": "Sci-Fi, Thriller"
+    }
+
+
+## Route: /api/search/year
+- **Request Type:** GET
+- **Purpose:** Searches for movies by a specific year.
+- **Request Body:**
+    - year (String): The year to filter movies by.
+- **Response Format:** JSON
+    - Success Response Example:
+        - Code: 200
+        - Content: Search results in JSON format.
+    - Error Response Examples:
+        - Code: 400
+          Content: { "error": "Year parameter is required" }
+        - Code: 500
+          Content: { "error": Exception Error }
+- **Example Request:**
+    {
+        "year": "2010"
+    }
+- **Example Response:**
+    {
+      "movies": [
+        {
+          "title": "Inception",
+          "year": "2010",
+          "director": "Christopher Nolan"
+        },
+        {
+          "title": "The Social Network",
+          "year": "2010",
+          "director": "David Fincher"
+        }
+      ]
+    }
+
+
+## Route: /api/movie/title/<title>
+- **Request Type:** GET
+- **Purpose:** Retrieves movie details by exact title.
+- **Request Body:**
+    - title (String): The title of the movie.
+- **Response Format:** JSON
+    - Success Response Example:
+        - Code: 200
+        - Content: Search results in JSON format.
+    - Error Response Examples:
+        - Code: 400
+          Content: { "error": "Type parameter is required" }
+        - Code: 500
+          Content: { "error": Exception Error }
+- **Example Request:**
+    {
+        "title": "Inception",
+    }
+- **Example Response:**
+    {
+      "title": "Inception",
+      "year": "2010",
+      "director": "Christopher Nolan",
+      "cast": ["Leonardo DiCaprio", "Joseph Gordon-Levitt"],
+      "genre": "Sci-Fi, Thriller"
+    }
+
+
+## Route: /api/search/type
+- **Request Type:** GET
+- **Purpose:** Searches for media by type (e.g., movie, series).
+- **Request Body:**
+    - type (String): The type of media to search for.
+- **Response Format:** JSON
+    - Success Response Example:
+        - Code: 200
+        - Content: Search results in JSON format.
+    - Error Response Examples:
+        - Code: 400
+          Content: { "error": "Year parameter is required" }
+        - Code: 500
+          Content: { "error": Exception Error }
+- **Example Request:**
+    {
+        "type": "movie",
+    }
+- **Example Response:**
+    {
+      "movies": [
+        {
+          "title": "Inception",
+          "year": "2010",
+          "type": "movie"
+        },
+        {
+          "title": "Iron Man",
+          "year": "2008",
+          "type": "Movie"
+        }
+      ]
+    }
+  
