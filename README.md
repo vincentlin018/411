@@ -146,17 +146,35 @@ The Movie Recommendation App offers users straightforward access to movie inform
           Content: { "error": "Error message from the exception" }
 - **Example Request:**
     {
-        "title": "Inception"
+        "title": "Star"
     }
 - **Example Response:**
     {
-        "movies": [
-          {
-              "title": "Inception",
-              "year": "2010",
-              "director": "Christopher Nolan",
-              "genre": "Sci-Fi, Thriller"
-          }
+      "movies": [
+        {
+          "title": "Star Wars: Episode IV - A New Hope",
+          "year": "1977",
+          "director": "George Lucas",
+          "genre": "Action, Adventure, Sci-Fi"
+        },
+        {
+          "title": "Star Wars: Episode V - The Empire Strikes Back",
+          "year": "1980",
+          "director": "Irvin Kershner",
+          "genre": "Action, Adventure, Sci-Fi"
+        },
+        {
+          "title": "Star Trek",
+          "year": "2009",
+          "director": "J.J. Abrams",
+          "genre": "Action, Adventure, Sci-Fi"
+        },
+        {
+          "title": "Star Trek: Into Darkness",
+          "year": "2013",
+          "director": "J.J. Abrams",
+          "genre": "Action, Adventure, Sci-Fi"
+        }
       ]
     }
 
