@@ -139,3 +139,70 @@ test_movie_by_title "The Dark Knight"
 test_search_by_type "movie"
 
 echo "All tests completed!"
+
+##########################################################
+#
+# User Authentication Tests
+#
+##########################################################
+
+# Function: test_create_account
+# Description: Tests the account creation functionality
+# Parameters:
+#   $1 - username
+#   $2 - password
+test_create_account() {
+    username=$1
+    password=$2
+    echo "Creating account for user: $username"
+    response=$(curl -s -X POST "$BASE_URL/create-account" \
+        -H "Content-Type: application/json" \
+        -d "{\"username\":\"$username\",\"password\":\"$password\"}")
+    if [ "$ECHO_JSON" = true ]; then
+        echo "$response" | jq .
+    fi
+}
+
+# Function: test_login
+# Description: Tests the login functionality
+# Parameters:
+#   $1 - username
+#   $2 - password
+test_login() {
+    username=$1
+    password=$2
+    echo "Attempting login for user: $username"
+    response=$(curl -s -X POST "$BASE_URL/login" \
+        -H "Content-Type: application/json" \
+        -d "{\"username\":\"$username\",\"password\":\"$password\"}")
+    if [ "$ECHO_JSON" = true ]; then
+        echo "$response" | jq .
+    fi
+}
+
+# Function: test_update_password
+# Description: Tests the password update functionality
+# Parameters:
+#   $1 - username
+#   $2 - old password
+#   $3 - new password
+test_update_password() {
+    username=$1
+    old_password=$2
+    new_password=$3
+    echo "Updating password for user: $username"
+    response=$(curl -s -X PUT "$BASE_URL/update-password" \
+        -H "Content-Type: application/json" \
+        -d "{\"username\":\"$username\",\"old_password\":\"$old_password\",\"new_password\":\"$new_password\"}")
+    if [ "$ECHO_JSON" = true ]; then
+        echo "$response" | jq .
+    fi
+}
+
+# Execute the user authentication tests
+echo "Running User Authentication Tests..."
+
+test_create_account "testuser" "testpassword"
+test_login "testuser" "testpassword"
+test_update_password "testuser" "testpassword" "newpassword"
+test_login "testuser" "newpassword"
